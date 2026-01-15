@@ -185,6 +185,7 @@ export interface KanbanTask {
     labels?: any[];
     collaborators?: any[];
     customFields?: any[];
+    relations?: any[];
 }
 
 export interface KanbanColumnTasksResponse {

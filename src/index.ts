@@ -167,7 +167,11 @@ server.tool(
             if (task.subTasks && task.subTasks.length > 0) {
                 formattedDetails += `- Subtasks (${task.subTasks.length}):\n`;
                 task.subTasks.forEach((subtask: any, index: number) => {
-                    formattedDetails += `  ${index + 1}. ${subtask.name || 'Unnamed subtask'}\n`;
+                    const status = subtask.finished ? '✅' : '⬜';
+                    formattedDetails += `  ${index + 1}. ${status} ${subtask.name || 'Unnamed subtask'}`;
+                    if (subtask.userId) formattedDetails += ` (assigned: ${subtask.userId})`;
+                    if (subtask.dueDateTimestamp) formattedDetails += ` (due: ${subtask.dueDateTimestamp})`;
+                    formattedDetails += `\n`;
                 });
             }
             
@@ -181,6 +185,16 @@ server.tool(
                     formattedDetails += `  ${index + 1}. ${date.dateType || 'dueDate'}: ${date.dueTimestamp || 'not set'}`;
                     if (date.targetColumnId) formattedDetails += ` (target column: ${date.targetColumnId})`;
                     if (date.status) formattedDetails += ` [${date.status}]`;
+                    formattedDetails += `\n`;
+                });
+            }
+
+            if (task.relations && task.relations.length > 0) {
+                formattedDetails += `- Relations (${task.relations.length}):\n`;
+                task.relations.forEach((relation: any, index: number) => {
+                    formattedDetails += `  ${index + 1}. ${relation.type || 'related'}: ${relation.taskId || relation.relatedTaskId || 'unknown'}`;
+                    if (relation.taskName || relation.relatedTaskName) formattedDetails += ` "${relation.taskName || relation.relatedTaskName}"`;
+                    if (relation.boardId) formattedDetails += ` (board: ${relation.boardId})`;
                     formattedDetails += `\n`;
                 });
             }
