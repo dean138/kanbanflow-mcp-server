@@ -176,7 +176,13 @@ server.tool(
             }
             
             if (task.dates && task.dates.length > 0) {
-                formattedDetails += `- Dates: ${task.dates.length} date(s) set\n`;
+                formattedDetails += `- Dates (${task.dates.length}):\n`;
+                task.dates.forEach((date: any, index: number) => {
+                    formattedDetails += `  ${index + 1}. ${date.dateType || 'dueDate'}: ${date.dueTimestamp || 'not set'}`;
+                    if (date.targetColumnId) formattedDetails += ` (target column: ${date.targetColumnId})`;
+                    if (date.status) formattedDetails += ` [${date.status}]`;
+                    formattedDetails += `\n`;
+                });
             }
 
             return {
