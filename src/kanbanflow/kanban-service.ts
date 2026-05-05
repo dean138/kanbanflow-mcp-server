@@ -2,8 +2,19 @@ import { KanbanClient } from './kanban-client.js';
 import { KANBAN_CONFIG } from './config.js';
 import { Board, CreateTaskRequest, CreateTaskResponse, KanbanColumnTasksResponse, KanbanTask, UpdateTaskRequest, KanbanAllTasksResponse, AddSubtaskRequest, AddSubtaskResponse, UpdateSubtaskRequest, AddLabelRequest, AddLabelResponse, UpdateLabelRequest, SetTaskDueDateRequest, UpdateCustomFieldRequest, AddCommentRequest, AddCommentResponse, UpdateCommentRequest, AddSubtasksRequest, AddSubtasksResponse, CreateTaskWithSubtasksRequest, CreateTaskWithSubtasksResponse } from './types.js';
 
+export interface BoardUser {
+    _id: string;
+    fullName: string;
+    email: string;
+}
+
+export interface TaskCollaborator {
+    userId: string;
+}
+
 export class KanbanService {
     private client: KanbanClient;
+    private usersCache: BoardUser[] | null = null;
 
     constructor() {
         this.client = new KanbanClient();
@@ -212,5 +223,35 @@ export class KanbanService {
         } catch (error) {
             throw error;
         }
+    }
+
+    async getTaskCollaborators(taskId: string): Promise<TaskCollaborator[]> {
+        try {
+            return await this.client.get<TaskCollaborator[]>(
+                `${KANBAN_CONFIG.ENDPOINTS.TASKS}/${taskId}/collaborators`
+            );
+        } catch (error) {
+            return [];
+        }
+    }
+
+    async getUsers(): Promise<BoardUser[]> {
+        if (this.usersCache) return this.usersCache;
+        try {
+            this.usersCache = await this.client.get<BoardUser[]>('/users');
+            return this.usersCache;
+        } catch (error) {
+            return [];
+        }
+    }
+
+    async resolveUserIds(userIds: string[]): Promise<Map<string, string>> {
+        const users = await this.getUsers();
+        const map = new Map<string, string>();
+        for (const id of userIds) {
+            const user = users.find(u => u._id === id);
+            map.set(id, user ? user.fullName : id);
+        }
+        return map;
     }
 } 

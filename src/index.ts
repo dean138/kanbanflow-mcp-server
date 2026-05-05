@@ -146,39 +146,53 @@ server.tool(
     },
     async ({ taskId, includePosition }) => {
         try {
-            const task = await kanbanService.getTaskDetails(taskId, includePosition);
+            const [task, collaborators] = await Promise.all([
+                kanbanService.getTaskDetails(taskId, includePosition),
+                kanbanService.getTaskCollaborators(taskId)
+            ]);
+
+            // Resolve user names for collaborators and responsibleUserId
+            const userIdsToResolve = collaborators.map(c => c.userId);
+            if (task.responsibleUserId) userIdsToResolve.push(task.responsibleUserId);
+            const userNames = userIdsToResolve.length > 0
+                ? await kanbanService.resolveUserIds(userIdsToResolve)
+                : new Map<string, string>();
 
             // Format task details for display
             let formattedDetails = `Task Details:\n`;
             formattedDetails += `- ID: ${task._id}\n`;
             formattedDetails += `- Name: ${task.name}\n`;
             formattedDetails += `- Column ID: ${task.columnId}\n`;
-            
+
             if (task.description) formattedDetails += `- Description: ${task.description}\n`;
             if (task.color) formattedDetails += `- Color: ${task.color}\n`;
             if (task.position) formattedDetails += `- Position: ${task.position}\n`;
             if (task.number) formattedDetails += `- Number: ${task.number.prefix || ''}${task.number.value}\n`;
-            if (task.responsibleUserId) formattedDetails += `- Responsible User: ${task.responsibleUserId}\n`;
+            if (task.responsibleUserId) formattedDetails += `- Responsible User: ${userNames.get(task.responsibleUserId) || task.responsibleUserId}\n`;
             if (task.totalSecondsSpent) formattedDetails += `- Time Spent: ${task.totalSecondsSpent} seconds\n`;
             if (task.totalSecondsEstimate) formattedDetails += `- Time Estimate: ${task.totalSecondsEstimate} seconds\n`;
             if (task.pointsEstimate) formattedDetails += `- Points Estimate: ${task.pointsEstimate}\n`;
             if (task.groupingDate) formattedDetails += `- Grouping Date: ${task.groupingDate}\n`;
-            
+
+            if (collaborators.length > 0) {
+                formattedDetails += `- Collaborators: ${collaborators.map(c => userNames.get(c.userId) || c.userId).join(', ')}\n`;
+            }
+
             if (task.subTasks && task.subTasks.length > 0) {
                 formattedDetails += `- Subtasks (${task.subTasks.length}):\n`;
                 task.subTasks.forEach((subtask: any, index: number) => {
                     const status = subtask.finished ? '✅' : '⬜';
                     formattedDetails += `  ${index + 1}. ${status} ${subtask.name || 'Unnamed subtask'}`;
-                    if (subtask.userId) formattedDetails += ` (assigned: ${subtask.userId})`;
+                    if (subtask.userId) formattedDetails += ` (assigned: ${userNames.get(subtask.userId) || subtask.userId})`;
                     if (subtask.dueDateTimestamp) formattedDetails += ` (due: ${subtask.dueDateTimestamp})`;
                     formattedDetails += `\n`;
                 });
             }
-            
+
             if (task.labels && task.labels.length > 0) {
                 formattedDetails += `- Labels: ${task.labels.map((label: any) => label.name).join(', ')}\n`;
             }
-            
+
             if (task.dates && task.dates.length > 0) {
                 formattedDetails += `- Dates (${task.dates.length}):\n`;
                 task.dates.forEach((date: any, index: number) => {
